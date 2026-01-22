@@ -1,9 +1,14 @@
 # stats: {'comp':0, 'swap: 0}
 def selection_sort(arr, stats):
+
     n = len(arr)
+
     for i in range(n):
+
         min_idx = i
+
         for j in range(i + 1, n):
+
             stats['comp'] += 1
             yield arr, [i, j, min_idx]
 

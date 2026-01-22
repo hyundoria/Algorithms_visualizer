@@ -4,15 +4,17 @@ import random
 import time
 from itertools import zip_longest
 
-# 기존에 만들어둔 알고리즘 모듈 재사용!
+# 알고리즘 모듈
 from algorithms.bubble_sort import bubble_sort
 from algorithms.selection_sort import selection_sort
+from algorithms.insertion_sort import insertion_sort
+from algorithms.merge_sort import merge_sort
 
 # --- [1] 페이지 설정 ---
 st.set_page_config(page_title="알고리즘 시각화 대시보드", layout="wide")
 
-st.title("📊 Sorting Algorithm Visualizer")
-st.markdown("파이썬으로 구현한 정렬 알고리즘을 **웹 대시보드**에서 비교해봅시다.")
+st.title("📊 Algorithm Visualizer")
+st.markdown("파이썬으로 구현한 알고리즘을 **웹 대시보드**에서 비교해봅시다.")
 
 # --- [2] 사이드바 (컨트롤 패널) ---
 with st.sidebar:
@@ -48,13 +50,14 @@ def run_visualization(n, speed):
     # 그래프 자리 잡기 (빈 공간 생성)
     col1, col2 = st.columns(2)
 
+    # 그래프 생성
     with col1:
-        st.subheader("Bubble Sort")
+        st.subheader("알고리즘 이름")
         chart_placeholder1 = st.empty()  # 그래프가 들어갈 빈 상자 1
         stats_placeholder1 = st.empty()  # 텍스트가 들어갈 빈 상자 1
 
     with col2:
-        st.subheader("Selection Sort")
+        st.subheader("알고리즘 이름")
         chart_placeholder2 = st.empty()  # 그래프가 들어갈 빈 상자 2
         stats_placeholder2 = st.empty()  # 텍스트가 들어갈 빈 상자 2
 
@@ -63,17 +66,17 @@ def run_visualization(n, speed):
     fig2, ax2 = plt.subplots(figsize=(5, 4))
 
     # 제너레이터 생성
-    gen1 = bubble_sort(data1, stats1)
-    gen2 = selection_sort(data2, stats2)
+    gen1 = insertion_sort(data1, stats1)
+    gen2 = merge_sort(data2, stats2)
 
     # --- [4] 애니메이션 루프 ---
     for frames in zip_longest(gen1, gen2, fillvalue=None):
-        bubble_state, select_state = frames
+        insertion_state, merge_state = frames
 
-        # --- 왼쪽 (버블) 그리기 ---
+        # --- 왼쪽 그리기 ---
         ax1.clear()  # 이전 그림 지우기
-        if bubble_state:
-            arr, idx_list = bubble_state
+        if insertion_state:
+            arr, idx_list = insertion_state
             # 기존 스타일 그대로 적용
             bars = ax1.bar(range(n), arr, color='b', edgecolor='black', linewidth=0.5, align='edge', width=1.0)
             for i in idx_list:
@@ -86,10 +89,10 @@ def run_visualization(n, speed):
         ax1.set_ylim(0, int(n * 1.1))
         ax1.axis('off')  # 축 눈금 숨기기 (깔끔하게)
 
-        # --- 오른쪽 (선택) 그리기 ---
+        # --- 오른쪽 그리기 ---
         ax2.clear()
-        if select_state:
-            arr, idx_list = select_state
+        if merge_state:
+            arr, idx_list = merge_state
             bars = ax2.bar(range(n), arr, color='b', edgecolor='black', linewidth=0.5, align='edge', width=1.0)
             for i in idx_list:
                 bars[i].set_facecolor('r')
