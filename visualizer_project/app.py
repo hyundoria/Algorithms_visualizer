@@ -10,107 +10,112 @@ from algorithms.selection_sort import selection_sort
 from algorithms.insertion_sort import insertion_sort
 from algorithms.merge_sort import merge_sort
 
-# --- [1] 페이지 설정 ---
+ALGO_MAP = {
+    "버블 정렬 (Bubble Sort)": bubble_sort,
+    "선택 정렬 (Selection Sort)": selection_sort,
+    "삽입 정렬 (Insertion Sort)": insertion_sort,
+    "병합 정렬 (Merge Sort)": merge_sort
+}
+
+# --- 페이지 설정 ---
 st.set_page_config(page_title="알고리즘 시각화 대시보드", layout="wide")
 
 st.title("📊 Algorithm Visualizer")
 st.markdown("파이썬으로 구현한 알고리즘을 **웹 대시보드**에서 비교해봅시다.")
 
-# --- [2] 사이드바 (컨트롤 패널) ---
+# --- 사이드바 ---
 with st.sidebar:
     st.header("⚙️ 설정")
+
+    selected_algos = st.multiselect(
+        "비교할 알고리즘 선택",
+        options=list(ALGO_MAP.keys()),
+        default=["삽입 정렬 (Insertion Sort)", "버블 정렬 (Bubble Sort)"] # 기본으로 띄울 알고리즘
+    )
+
     n = st.slider("데이터 개수 (N)", min_value=10, max_value=100, value=30, step=5)
     speed = st.slider("애니메이션 속도 (초)", 0.01, 0.5, 0.05)
 
     start_btn = st.button("시각화 시작! 🚀", type="primary")
 
 
-# --- [3] 메인 시각화 함수 ---
-def run_visualization(n, speed):
+# --- 메인 시각화 함수 ---
+def run_visualization(algo_names, n, speed):
     # 데이터 생성
+
+    if not algo_names:
+        st.warning("적어도 하나 이상의 알고리즘을 선택해주세요!")
 
     max_data_size = 100
     if n > max_data_size:
-        st.error(f"보안 경고: 데이터 개수는 {max_data_size}개를 초과할 수 없습니다.")
+        st.error(f"데이터 개수는 {max_data_size}개를 초과할 수 없습니다.")
         return  # 함수 강제 종료
 
     if speed < 0.01:
         st.warning("속도가 너무 빠르면 브라우저가 멈출 수 있습니다.")
         speed = 0.01  # 최소 속도 강제 조정
 
+    # 데이터 생성
     raw_data = list(range(1, n + 1))
     random.shuffle(raw_data)
 
-    data1 = raw_data[:]
-    data2 = raw_data[:]
+    # --- 화면 컬럼 동적 생성 ---
+    # 선택한 알고리즘 개수만큼 화면을 나눕니다.
+    cols = st.columns(len(algo_names))
 
-    stats1 = {'comp': 0, 'swap': 0}
-    stats2 = {'comp': 0, 'swap': 0}
+    generators = []
+    placeholders = []
+    stats_placeholders = []
+    figs = []
+    axs = []
+    stats_list = []
 
-    # 그래프 자리 잡기 (빈 공간 생성)
-    col1, col2 = st.columns(2)
+    # --- 각 알고리즘별 초기화 ---
+    for i, (col, name) in enumerate(zip(cols, algo_names)):
+        with col:
+            st.subheader(name) # 선택한 알고리즘 이름 표시
+            chart_ph = st.empty()
+            stat_ph = st.empty()
 
-    # 그래프 생성
-    with col1:
-        st.subheader("알고리즘 이름")
-        chart_placeholder1 = st.empty()  # 그래프가 들어갈 빈 상자 1
-        stats_placeholder1 = st.empty()  # 텍스트가 들어갈 빈 상자 1
+            placeholders.append(chart_ph)
+            stats_placeholders.append(stat_ph)
 
-    with col2:
-        st.subheader("알고리즘 이름")
-        chart_placeholder2 = st.empty()  # 그래프가 들어갈 빈 상자 2
-        stats_placeholder2 = st.empty()  # 텍스트가 들어갈 빈 상자 2
+            fig, ax = plt.subplots(figsize=(5, 4))
+            figs.append(fig)
+            axs.append(ax)
 
-    # Matplotlib Figure 생성 (딱 한 번만 생성)
-    fig1, ax1 = plt.subplots(figsize=(5, 4))
-    fig2, ax2 = plt.subplots(figsize=(5, 4))
+            data_copy = raw_data[:]
+            stats = {'comp': 0, 'swap': 0}
+            stats_list.append(stats)
 
-    # 제너레이터 생성
-    gen1 = insertion_sort(data1, stats1)
-    gen2 = merge_sort(data2, stats2)
+            # 딕셔너리에서 함수를 꺼내 제너레이터 생성
+            sort_func = ALGO_MAP[name]
+            generators.append(sort_func(data_copy, stats))
 
-    # --- [4] 애니메이션 루프 ---
-    for frames in zip_longest(gen1, gen2, fillvalue=None):
-        insertion_state, merge_state = frames
+    # --- 애니메이션 루프 ---
+    for frames in zip_longest(*generators, fillvalue=None):
+        for i, state in enumerate(frames):
+            ax = axs[i]
+            ax.clear()  # 이전 그림 지우기
 
-        # --- 왼쪽 그리기 ---
-        ax1.clear()  # 이전 그림 지우기
-        if insertion_state:
-            arr, idx_list = insertion_state
-            # 기존 스타일 그대로 적용
-            bars = ax1.bar(range(n), arr, color='b', edgecolor='black', linewidth=0.5, align='edge', width=1.0)
-            for i in idx_list:
-                bars[i].set_facecolor('r')
-        else:
-            # 완료 시
-            ax1.bar(range(n), data1, color='purple', edgecolor='black', linewidth=0.5, align='edge', width=1.0)
+            if state is None:
+                # 완료 시 보라색으로 렌더링
+                ax.bar(range(n), sorted(raw_data), color='purple', edgecolor='black', linewidth=0.5, align='edge', width=1.0)
+            else:
+                arr, idx_list = state
+                bars = ax.bar(range(n), arr, color='b', edgecolor='black', linewidth=0.5, align='edge', width=1.0)
+                for idx in idx_list:
+                    if idx < n:
+                        bars[idx].set_facecolor('r')
 
-        ax1.set_xlim(0, n)
-        ax1.set_ylim(0, int(n * 1.1))
-        ax1.axis('off')  # 축 눈금 숨기기 (깔끔하게)
+            ax.set_xlim(0, n)
+            ax.set_ylim(0, int(n * 1.1))
+            ax.axis('off')  # 축 눈금 숨기기
 
-        # --- 오른쪽 그리기 ---
-        ax2.clear()
-        if merge_state:
-            arr, idx_list = merge_state
-            bars = ax2.bar(range(n), arr, color='b', edgecolor='black', linewidth=0.5, align='edge', width=1.0)
-            for i in idx_list:
-                bars[i].set_facecolor('r')
-        else:
-            ax2.bar(range(n), data2, color='purple', edgecolor='black', linewidth=0.5, align='edge', width=1.0)
-
-        ax2.set_xlim(0, n)
-        ax2.set_ylim(0, int(n * 1.1))
-        ax2.axis('off')
-
-        # --- 화면 업데이트 ---
-        # Matplotlib 그림을 Streamlit 상자에 집어넣음
-        chart_placeholder1.pyplot(fig1)
-        chart_placeholder2.pyplot(fig2)
-
-        # 텍스트 업데이트
-        stats_placeholder1.info(f"비교: {stats1['comp']} | 교환: {stats1['swap']}")
-        stats_placeholder2.info(f"비교: {stats2['comp']} | 교환: {stats2['swap']}")
+            # 화면 업데이트
+            placeholders[i].pyplot(figs[i])
+            stats = stats_list[i]
+            stats_placeholders[i].info(f"비교: {stats['comp']} | 교환: {stats['swap']}")
 
         # 속도 조절
         time.sleep(speed)
@@ -120,4 +125,4 @@ def run_visualization(n, speed):
 
 # 버튼이 눌리면 함수 실행
 if start_btn:
-    run_visualization(n, speed)
+    run_visualization(selected_algos, n,speed)
