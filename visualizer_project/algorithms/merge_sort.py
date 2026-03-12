@@ -1,7 +1,4 @@
 def merge_sort(arr, stats):
-    """
-    외부에서 호출하는 진입점 함수 (Wrapper)
-    """
     # 실제 재귀 함수 호출 (0 ~ len-1)
     yield from _merge_sort_recursive(arr, 0, len(arr) - 1, stats)
     yield None

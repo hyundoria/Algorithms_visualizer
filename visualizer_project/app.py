@@ -9,12 +9,16 @@ from algorithms.bubble_sort import bubble_sort
 from algorithms.selection_sort import selection_sort
 from algorithms.insertion_sort import insertion_sort
 from algorithms.merge_sort import merge_sort
+from algorithms.heap_sort import heap_sort
+from algorithms.quick_Sort import quick_sort
 
 ALGO_MAP = {
     "버블 정렬 (Bubble Sort)": bubble_sort,
     "선택 정렬 (Selection Sort)": selection_sort,
     "삽입 정렬 (Insertion Sort)": insertion_sort,
-    "병합 정렬 (Merge Sort)": merge_sort
+    "병합 정렬 (Merge Sort)": merge_sort,
+    "힙 정렬 (Heap Sort)": heap_sort,
+    "퀵 정렬 (Quick Sort)": quick_sort,
 }
 
 # --- 페이지 설정 ---
@@ -33,7 +37,7 @@ with st.sidebar:
         default=["삽입 정렬 (Insertion Sort)", "버블 정렬 (Bubble Sort)"] # 기본으로 띄울 알고리즘
     )
 
-    n = st.slider("데이터 개수 (N)", min_value=10, max_value=100, value=30, step=5)
+    n = st.slider("데이터 개수 (N)", min_value=10, max_value=50, value=30, step=5)
     speed = st.slider("애니메이션 속도 (초)", 0.01, 0.5, 0.05)
 
     start_btn = st.button("시각화 시작! 🚀", type="primary")
