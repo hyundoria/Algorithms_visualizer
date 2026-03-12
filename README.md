@@ -18,5 +18,7 @@ FastAPI 백엔드에서 계산된 정렬 시뮬레이션 데이터를 받아 브
 프로젝트를 로컬 환경에서 도커로 실행하려면 다음 명령어를 입력하세요.
 
    docker build -t algo-app .
+   
    docker run -p 8080:80 algo-app
+   
    브라우저에서 http://localhost:8080 접속
