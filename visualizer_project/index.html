@@ -8,14 +8,22 @@
 
         .controls { margin-bottom: 20px; padding: 15px; background: white; border-radius: 8px; display: inline-block; box-shadow: 0 2px 5px rgba(0,0,0,0.1);}
         label { margin: 0 15px; font-size: 18px; cursor: pointer; font-weight: bold; }
-        button { padding: 10px 30px; margin-top: 15px; font-size: 18px; background-color: #339af0; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;}
+
+        .sliders { display: flex; justify-content: center; align-items: center; gap: 30px; margin-top: 15px; padding-top: 15px; border-top: 1px solid #dee2e6; }
+        .slider-group { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+        input[type="range"] { width: 150px; cursor: pointer; }
+
+        button { padding: 12px 35px; margin-top: 20px; font-size: 18px; background-color: #339af0; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;}
         button:hover { background-color: #228be6; }
 
         #charts-wrapper { display: flex; flex-wrap: wrap; justify-content: center; gap: 30px; margin-top: 20px;}
         .chart-box { background-color: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .chart { display: flex; align-items: flex-end; justify-content: center; height: 250px; width: 300px; gap: 2px; }
 
-        .bar { background-color: #4dabf7; width: 8px; border-radius: 2px 2px 0 0; }
+        /* 통계 */
+        .stats-text { font-size: 16px; font-weight: bold; color: #495057; margin-bottom: 10px; }
+
+        .chart { display: flex; align-items: flex-end; justify-content: center; height: 250px; width: 320px; gap: 1px;}
+        .bar { background-color: #4dabf7; flex: 1; border-radius: 2px 2px 0 0; }
         .active { background-color: #fa5252; }
     </style>
 </head>
@@ -23,14 +31,26 @@
 <h1>Algorithms Visualizer</h1>
 
 <div class="controls">
-    <label><input type="checkbox" name="algo" value="bubble" checked> Bubble Sort</label>
-    <label><input type="checkbox" name="algo" value="selection" checked> Selection Sort</label>
-    <label><input type="checkbox" name="algo" value="insertion"> Insertion Sort</label>
-    <label><input type="checkbox" name="algo" value="merge"> Merge Sort</label>
-    <label><input type="checkbox" name="algo" value="heap"> Heap Sort</label>
-    <label><input type="checkbox" name="algo" value="quick"> Quick Sort</label>
+    <div>
+        <label><input type="checkbox" name="algo" value="bubble" checked> Bubble Sort</label>
+        <label><input type="checkbox" name="algo" value="selection" checked> Selection Sort</label>
+        <label><input type="checkbox" name="algo" value="insertion"> Insertion Sort</label>
+        <label><input type="checkbox" name="algo" value="merge"> Merge Sort</label>
+        <label><input type="checkbox" name="algo" value="heap"> Heap Sort</label>
+        <label><input type="checkbox" name="algo" value="quick"> Quick Sort</label>
+    </div>
 
-    <br>
+    <div class="sliders">
+        <div class="slider-group">
+            <label for="data-size">데이터 개수 (N): <span id="size-val" style="color:#e03131;">30</span></label>
+            <input type="range" id="data-size" min="10" max="100" value="30" oninput="document.getElementById('size-val').innerText = this.value">
+        </div>
+        <div class="slider-group">
+            <label for="anim-speed">애니메이션 속도: <span id="speed-val" style="color:#e03131;">65</span></label>
+            <input type="range" id="anim-speed" min="1" max="100" value="65" oninput="document.getElementById('speed-val').innerText = this.value">
+        </div>
+    </div>
+
     <button id="start-btn" onclick="startSort()">Start!</button>
 </div>
 
@@ -50,32 +70,47 @@
             return;
         }
 
+        // 슬라이더에서 데이터 개수(N)와 속도 값을 가져옵니다.
+        const n = document.getElementById('data-size').value;
+        const speedValue = document.getElementById('anim-speed').value;
+
+        // 속도 슬라이더가 100(빠름)일 때 딜레이는 1ms, 1(느림)일 때 100ms
+        const delay = 101 - speedValue;
+
         btn.disabled = true;
         wrapper.innerHTML = '<p>loading...</p>';
 
         // 2. 파이썬 서버로 선택한 알고리즘들을 쉼표로 묶어서 요청합니다 (예: bubble,merge)
-        const url = `http://localhost:8000/api/sort?algos=${selectedAlgos.join(',')}&n=30`;
+        const url = `/api/sort?algos=${selectedAlgos.join(',')}&n=${n}`;
         const response = await fetch(url);
         const data = await response.json();
 
         wrapper.innerHTML = '';
 
-        // 3. 선택한 개수만큼 화면(chart-box)을 만들어줍니다.
+        // 3. 선택한 개수만큼 화면(chart-box)과 통계를 만든다.
         const chartElements = {};
+        const statsElements = {};
+
         selectedAlgos.forEach(algo => {
             const box = document.createElement('div');
             box.className = 'chart-box';
-            // 영문 이름을 보기 좋게 대문자로 바꿈
-            box.innerHTML = `<h3>${algo.toUpperCase()} SORT</h3><div class="chart" id="chart-${algo}"></div>`;
-            wrapper.appendChild(box);
+            // 영문 이름을 보기 좋게 대문자로 바꿈 + 통계 표시
+            box.innerHTML = `
+                    <h3>${algo.toUpperCase()} SORT</h3>
+                    <div class="stats-text" id="stats-${algo}">비교: 0 | 교환: 0</div>
+                    <div class="chart" id="chart-${algo}"></div>
+                `;            wrapper.appendChild(box);
 
             chartElements[algo] = document.getElementById(`chart-${algo}`);
+            statsElements[algo] = document.getElementById(`stats-${algo}`);
         });
 
         // 4. 각각의 애니메이션을 동시에 재생합니다.
         selectedAlgos.forEach(algo => {
             const history = data[algo];
             const chartElement = chartElements[algo];
+            const statsElement = statsElements[algo];
+
             let frame = 0;
 
             function drawFrame() {
@@ -88,18 +123,22 @@
                 const state = history[frame];
                 chartElement.innerHTML = '';
 
+                statsElement.innerText = `비교: ${state.comp} | 교환: ${state.swap}`;
+
+                const maxHeight = 230;
+
                 state.arr.forEach((value, idx) => {
                     const bar = document.createElement('div');
                     bar.className = 'bar';
-                    bar.style.height = (value * 8) + 'px';
+                    const barHeight = (value / n) * maxHeight;
+                    bar.style.height = barHeight + 'px';
 
                     if (state.active.includes(idx)) bar.classList.add('active');
                     chartElement.appendChild(bar);
                 });
 
                 frame++;
-                setTimeout(drawFrame, 35); // 15ms 마다 갱신 (부드러운 속도)
-            }
+                setTimeout(drawFrame, delay);            }
             drawFrame();
         });
     }

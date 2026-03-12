@@ -1,6 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+
 import random
+
+
 
 from algorithms.bubble_sort import bubble_sort
 from algorithms.selection_sort import selection_sort
@@ -49,7 +53,7 @@ def get_multiple_sorts(algos: str = "bubble,selection", n: int = 30):
         func = ALGO_MAP[algo_name] # 실행할 함수 꺼내기
 
         history = []
-        history.append({"arr": arr[:], "active": []}) # 시작 상태
+        history.append({"arr": arr[:], "active": [], "comp": 0, "swap": 0}) # 시작 상태
 
         # 제너레이터(yield)를 돌면서 history에 사진을 찍어 모읍니다.
         for state in func(arr, stats):
@@ -58,9 +62,22 @@ def get_multiple_sorts(algos: str = "bubble,selection", n: int = 30):
 
             # state는 (arr, [비교/교환중인 인덱스들]) 형태입니다.
             current_arr, active_indices = state
-            history.append({"arr": current_arr[:], "active": active_indices})
-
-        history.append({"arr": arr[:], "active": []}) # 완료 상태
+            history.append({
+                "arr": current_arr[:],
+                "active": active_indices,
+                "comp": stats['comp'],
+                "swap": stats['swap']
+            })
+        history.append({"arr": arr[:],
+                        "active": [],
+                        "comp": stats['comp'],
+                        "swap": stats['swap']}) # 완료 상태
         results[algo_name] = history
 
     return results
+
+
+# 도커에서 HTML을 띄워주기 위한 라우터
+@app.get("/")
+def serve_frontend():
+    return FileResponse("index.html")
