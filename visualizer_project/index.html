@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>Algorithms Visualizer</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding: 20px; background-color: #f1f3f5;}
+
+        .controls { margin-bottom: 20px; padding: 15px; background: white; border-radius: 8px; display: inline-block; box-shadow: 0 2px 5px rgba(0,0,0,0.1);}
+        label { margin: 0 15px; font-size: 18px; cursor: pointer; font-weight: bold; }
+        button { padding: 10px 30px; margin-top: 15px; font-size: 18px; background-color: #339af0; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;}
+        button:hover { background-color: #228be6; }
+
+        #charts-wrapper { display: flex; flex-wrap: wrap; justify-content: center; gap: 30px; margin-top: 20px;}
+        .chart-box { background-color: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .chart { display: flex; align-items: flex-end; justify-content: center; height: 250px; width: 300px; gap: 2px; }
+
+        .bar { background-color: #4dabf7; width: 8px; border-radius: 2px 2px 0 0; }
+        .active { background-color: #fa5252; }
+    </style>
+</head>
+<body>
+<h1>Algorithms Visualizer</h1>
+
+<div class="controls">
+    <label><input type="checkbox" name="algo" value="bubble" checked> Bubble Sort</label>
+    <label><input type="checkbox" name="algo" value="selection" checked> Selection Sort</label>
+    <label><input type="checkbox" name="algo" value="insertion"> Insertion Sort</label>
+    <label><input type="checkbox" name="algo" value="merge"> Merge Sort</label>
+    <label><input type="checkbox" name="algo" value="heap"> Heap Sort</label>
+    <label><input type="checkbox" name="algo" value="quick"> Quick Sort</label>
+
+    <br>
+    <button id="start-btn" onclick="startSort()">Start!</button>
+</div>
+
+<div id="charts-wrapper"></div>
+
+<script>
+    async function startSort() {
+        const btn = document.getElementById('start-btn');
+        const wrapper = document.getElementById('charts-wrapper');
+
+        // 체크된 체크박스의 값(value)들을 모아서 리스트로 만듭니다.
+        const checkboxes = document.querySelectorAll('input[name="algo"]:checked');
+        const selectedAlgos = Array.from(checkboxes).map(cb => cb.value);
+
+        if (selectedAlgos.length === 0) {
+            alert("Please select at least one algorithm!\n");
+            return;
+        }
+
+        btn.disabled = true;
+        wrapper.innerHTML = '<p>loading...</p>';
+
+        // 2. 파이썬 서버로 선택한 알고리즘들을 쉼표로 묶어서 요청합니다 (예: bubble,merge)
+        const url = `http://localhost:8000/api/sort?algos=${selectedAlgos.join(',')}&n=30`;
+        const response = await fetch(url);
+        const data = await response.json();
+
+        wrapper.innerHTML = '';
+
+        // 3. 선택한 개수만큼 화면(chart-box)을 만들어줍니다.
+        const chartElements = {};
+        selectedAlgos.forEach(algo => {
+            const box = document.createElement('div');
+            box.className = 'chart-box';
+            // 영문 이름을 보기 좋게 대문자로 바꿈
+            box.innerHTML = `<h3>${algo.toUpperCase()} SORT</h3><div class="chart" id="chart-${algo}"></div>`;
+            wrapper.appendChild(box);
+
+            chartElements[algo] = document.getElementById(`chart-${algo}`);
+        });
+
+        // 4. 각각의 애니메이션을 동시에 재생합니다.
+        selectedAlgos.forEach(algo => {
+            const history = data[algo];
+            const chartElement = chartElements[algo];
+            let frame = 0;
+
+            function drawFrame() {
+                if (frame >= history.length) {
+                    chartElement.querySelectorAll('.bar').forEach(b => b.style.backgroundColor = '#b197fc');
+                    if (algo === selectedAlgos[selectedAlgos.length - 1]) btn.disabled = false;
+                    return;
+                }
+
+                const state = history[frame];
+                chartElement.innerHTML = '';
+
+                state.arr.forEach((value, idx) => {
+                    const bar = document.createElement('div');
+                    bar.className = 'bar';
+                    bar.style.height = (value * 8) + 'px';
+
+                    if (state.active.includes(idx)) bar.classList.add('active');
+                    chartElement.appendChild(bar);
+                });
+
+                frame++;
+                setTimeout(drawFrame, 35); // 15ms 마다 갱신 (부드러운 속도)
+            }
+            drawFrame();
+        });
+    }
+</script>
+</body>
+</html>
