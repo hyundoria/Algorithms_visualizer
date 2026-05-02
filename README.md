@@ -11,7 +11,7 @@ FastAPI 백엔드에서 계산된 정렬 시뮬레이션 데이터를 받아 브
 ## 기술 스택
 - **Backend**: Python 3.13, FastAPI, Uvicorn
 - **Frontend**: HTML5, CSS3, Vanilla JavaScript (ES6+)
-- **DevOps**: Docker, Render (Cloud Deployment)
+- **DevOps**: Docker
 
 ## 실행 방법
 
